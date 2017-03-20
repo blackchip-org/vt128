@@ -16,6 +16,7 @@ var (
 	disk     string
 	commands = map[string]func([]string){
 		"create": create,
+		"dir":    dir,
 	}
 )
 
@@ -79,5 +80,16 @@ func create(args []string) {
 	if err != nil {
 		w("unable to save image: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+func dir(args []string) {
+	d, err := d71.Load(disk)
+	if err != nil {
+		w("unable to load disk: %v\n", err)
+	}
+	list := d.List()
+	for _, info := range list {
+		fmt.Printf("%v\n", info.Name)
 	}
 }

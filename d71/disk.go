@@ -3,6 +3,7 @@ package d71
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 )
 
 const (
@@ -140,6 +141,34 @@ func (d Disk) Editor() *Editor {
 func (d Disk) Save(filename string) error {
 	err := ioutil.WriteFile(filename, d, 0644)
 	return err
+}
+
+func Load(filename string) (Disk, error) {
+	fi, err := os.Stat(filename)
+	if err != nil {
+		return nil, err
+	}
+	if fi.Size() != DiskLen {
+		return nil, fmt.Errorf("File is not a D71 disk: %v", filename)
+	}
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return Disk(data), nil
+}
+
+func (d Disk) List() []*FileInfo {
+	w := newDirWalker(d)
+	list := make([]*FileInfo, 0, 0)
+	for {
+		fi, more := w.next()
+		if !more {
+			break
+		}
+		list = append(list, fi)
+	}
+	return list
 }
 
 // For a given track and sector, compute the location of the BAM entry.

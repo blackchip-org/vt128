@@ -40,6 +40,15 @@ func (e *Editor) Read() int {
 	return v
 }
 
+func (e *Editor) ReadWord() int {
+	return e.Read() + (e.Read() << 8)
+}
+
+func (e *Editor) WriteWord(val int) {
+	e.Write(val & 0xff)
+	e.Write(val >> 8)
+}
+
 func (e *Editor) WriteString(val string) {
 	n := len(val)
 	for i := 0; i < n; i++ {

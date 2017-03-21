@@ -132,12 +132,12 @@ func NewDisk(name string, id string) (Disk, error) {
 		e.Write(Geom[i].lastFree) // Remaining sectors free
 	}
 
-	e.WritePadded(name, 0xa0, 0x10) // Disk Name
-	e.Fill(0xa0, 2)                 // Fill
-	e.WritePadded(id, 0x20, 2)      // Disk ID
-	e.Write(0xa0)                   // Fill
-	e.WriteString("2A")             // DOS Type
-	e.Fill(0xa0, 0xaa-0xa7+1)       // Fill
+	e.WriteStringN(name, 0xa0, 0x10) // Disk Name
+	e.Fill(0xa0, 2)                  // Fill
+	e.WriteStringN(id, 0x20, 2)      // Disk ID
+	e.Write(0xa0)                    // Fill
+	e.WriteString("2A")              // DOS Type
+	e.Fill(0xa0, 0xaa-0xa7+1)        // Fill
 
 	// Free sector count of back side
 	e.Seek(18, 0, 0xdd)

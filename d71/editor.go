@@ -73,7 +73,7 @@ func (e *Editor) Fill(val int, length int) {
 	e.Pos += length
 }
 
-func (e *Editor) WritePadded(val string, pad int, length int) {
+func (e *Editor) WriteStringN(val string, pad int, length int) {
 	e.WriteString(val)
 	n := length - len(val)
 	if n <= 0 {

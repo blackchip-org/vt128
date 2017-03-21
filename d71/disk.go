@@ -31,8 +31,9 @@ const (
 // Track contains a number of sectors and the absolute offset in the disk
 // of where the tracks starts
 type Track struct {
-	Sectors int
-	Offset  int
+	Sectors  int
+	Offset   int
+	lastFree int // Bitmap for the final BAM byte when track free
 }
 
 type DiskInfo struct {
@@ -56,27 +57,36 @@ func init() {
 	offset := 0
 	for i := 1; i <= 70; i++ {
 		sectors := 0
+		lastFree := 0
 		switch {
 		case i >= 1 && i <= 17:
 			sectors = 21
+			lastFree = 1<<5 - 1
 		case i >= 18 && i <= 24:
 			sectors = 19
+			lastFree = 1<<3 - 1
 		case i >= 25 && i <= 30:
 			sectors = 18
+			lastFree = 1<<2 - 1
 		case i >= 31 && i <= 35:
 			sectors = 17
+			lastFree = 1
 		case i >= 36 && i <= 52:
 			sectors = 21
+			lastFree = 1<<5 - 1
 		case i >= 53 && i <= 59:
 			sectors = 19
+			lastFree = 1<<3 - 1
 		case i >= 60 && i <= 65:
 			sectors = 18
+			lastFree = 1<<2 - 1
 		case i >= 66 && i <= 70:
 			sectors = 17
+			lastFree = 1
 		default:
 			panic(fmt.Sprintf("invalid track: %v", i))
 		}
-		Geom[i] = Track{Sectors: sectors, Offset: offset}
+		Geom[i] = Track{Sectors: sectors, Offset: offset, lastFree: lastFree}
 		offset += (sectors * SectorLen)
 	}
 }
@@ -111,15 +121,20 @@ func NewDisk(name string, id string) (Disk, error) {
 	// BAM, front Side
 	for i := 1; i < Flip; i++ {
 		sectors := Geom[i].Sectors
-		e.Write(sectors) // Sectors available
-		e.Write(0xff)    // Sectors 0 - 7 free
-		e.Write(0xff)    // Sectors 8 - 15 free
-		e.Write(0xff)    // Remaining sectors free
+		if i != DirTrack {
+			e.Write(sectors) // Sectors available
+			e.Write(0xff)    // Sectors 0 - 7 free
+		} else {
+			e.Write(sectors - 2) // BAM and first dir sector in use
+			e.Write(0xfc)        // First two sectors in use
+		}
+		e.Write(0xff)             // Sectors 8 - 15 free
+		e.Write(Geom[i].lastFree) // Remaining sectors free
 	}
 
 	e.WritePadded(name, 0xa0, 0x10) // Disk Name
 	e.Fill(0xa0, 2)                 // Fill
-	e.WritePadded(id, 0xa0, 2)      // Disk ID
+	e.WritePadded(id, 0x20, 2)      // Disk ID
 	e.Write(0xa0)                   // Fill
 	e.WriteString("2A")             // DOS Type
 	e.Fill(0xa0, 0xaa-0xa7+1)       // Fill
@@ -127,19 +142,29 @@ func NewDisk(name string, id string) (Disk, error) {
 	// Free sector count of back side
 	e.Seek(18, 0, 0xdd)
 	for i := Flip; i <= LastTrack; i++ {
-		sectors := Geom[i].Sectors
-		e.Write(sectors) // Sectors available
+		if i != BamTrack {
+			sectors := Geom[i].Sectors
+			e.Write(sectors) // Sectors available
+		} else {
+			e.Write(0) // All sectors in use
+		}
 	}
 
 	// BAM, back side
 	e.Seek(53, 0, 0)
 	for i := Flip; i <= LastTrack; i++ {
-		sectors := Geom[i].Sectors
-		e.Write(sectors) // Sectors available
-		e.Write(0xff)    // Sectors 0 - 7 free
-		e.Write(0xff)    // Sectors 8 - 15 free
-		e.Write(0xff)    // Remaining sectors free
+		if i != BamTrack {
+			e.Write(0xff)             // Sectors 0 - 7 free
+			e.Write(0xff)             // Sectors 8 - 15 free
+			e.Write(Geom[i].lastFree) // Remaining sectors free
+		} else {
+			e.Fill(0, 3) // All sectors marked as used
+		}
 	}
+
+	// Blank directory, set link to nothing
+	e.Seek(DirTrack, 1, 1)
+	e.Write(0xff)
 
 	return d, nil
 }
@@ -213,14 +238,18 @@ func (d Disk) List() []FileInfo {
 // record. It returns the offset from that position to the byte that
 // holds the bitmap and the mask that should be used to modify the entry.
 func bamPos(e *Editor, track int, sector int) (off int, mask int) {
+	bmapOffset := 1
+	bytesPerRecord := 4
 	if track < Flip {
 		e.Seek(DirTrack, 0, 4)
 	} else {
 		e.Seek(BamTrack, 0, 0)
 		track = track - Flip + 1
+		bmapOffset = 0
+		bytesPerRecord = 3
 	}
-	e.Move((track - 1) * 4)
-	off = sector/8 + 1
+	e.Move((track - 1) * bytesPerRecord)
+	off = sector/8 + bmapOffset
 	mask = 1 << byte(sector%8)
 	return off, mask
 }
@@ -254,8 +283,11 @@ func (d *Disk) bamWrite(track int, sector int, val bool) {
 	e := d.Editor()
 	off, mask := bamPos(e, track, sector)
 
-	// Update the number of available sectors for this track
-	e.Poke(e.Peek() + delta)
+	// Update the number of available sectors for this track if on the
+	// front side
+	if track < Flip {
+		e.Poke(e.Peek() + delta)
+	}
 
 	// Update the bitmap entry
 	bmap := e.Move(off).Peek()

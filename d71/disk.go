@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 const (
@@ -32,6 +33,15 @@ const (
 type Track struct {
 	Sectors int
 	Offset  int
+}
+
+type DiskInfo struct {
+	Name        string
+	ID          string
+	DosVersion  string
+	DosType     string
+	DoubleSided bool
+	Free        int
 }
 
 // Geom contains an entry for each track describing the number of sectors
@@ -158,9 +168,36 @@ func Load(filename string) (Disk, error) {
 	return Disk(data), nil
 }
 
-func (d Disk) List() []*FileInfo {
+func (d Disk) Info() DiskInfo {
+	e := d.Editor()
+	di := DiskInfo{}
+	free := 0
+	e.Seek(DirTrack, 0, 2)
+	di.DosVersion = e.ReadString(1)
+	di.DoubleSided = e.Read() == 0x80
+	// Front side counts in BAM
+	for track := 1; track < Flip; track++ {
+		free += e.Read()
+		e.Move(3)
+	}
+	di.Name = strings.Trim(e.ReadString(16), "\xa0")
+	e.Move(2)
+	di.ID = e.ReadString(2)
+	e.Move(1)
+	di.DosType = e.ReadString(2)
+
+	// Back side counts in aux area
+	e.Seek(DirTrack, 0, 0xdd)
+	for track := Flip; track <= LastTrack; track++ {
+		free += e.Read()
+	}
+	di.Free = free
+	return di
+}
+
+func (d Disk) List() []FileInfo {
 	w := newDirWalker(d)
-	list := make([]*FileInfo, 0, 0)
+	list := make([]FileInfo, 0, 0)
 	for {
 		fi, more := w.next()
 		if !more {

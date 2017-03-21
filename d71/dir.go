@@ -14,6 +14,21 @@ const (
 	Rel                 // Relative
 )
 
+var fileTypeStr = map[FileType]string{
+	Del: "DEL",
+	Seq: "SEQ",
+	Prg: "PRG",
+	Usr: "USR",
+	Rel: "REL",
+}
+
+func (f FileType) String() string {
+	if str, ok := fileTypeStr[f]; ok {
+		return str
+	}
+	return "???"
+}
+
 type FileInfo struct {
 	Type   FileType //
 	SaveAt bool     // SAVE-@ operation
@@ -69,7 +84,7 @@ func (w *dirWalker) advance() bool {
 	return true
 }
 
-func (w *dirWalker) next() (*FileInfo, bool) {
+func (w *dirWalker) next() (FileInfo, bool) {
 	for {
 		e := w.e.Mark().Move(2)
 		ftype := e.Read()
@@ -78,7 +93,7 @@ func (w *dirWalker) next() (*FileInfo, bool) {
 			ok := w.advance()
 			if !ok {
 				// Reached the end, no more entries
-				return nil, false
+				return FileInfo{}, false
 			}
 		} else {
 			// If not deleted, this is a valid entry.
@@ -86,7 +101,7 @@ func (w *dirWalker) next() (*FileInfo, bool) {
 		}
 	}
 
-	fi := &FileInfo{}
+	fi := FileInfo{}
 
 	w.e.Move(2)
 	ftype := w.e.Read()

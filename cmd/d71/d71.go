@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/blackchip-org/vt128/ansi"
 	"github.com/blackchip-org/vt128/d71"
 )
 
@@ -88,8 +89,12 @@ func dir(args []string) {
 	if err != nil {
 		w("unable to load disk: %v\n", err)
 	}
+	info := d.Info()
+	fmt.Printf("0 %v\"%-16v\" %2v %2v%v\n", ansi.Reverse, info.Name, info.ID,
+		info.DosType, ansi.Normal)
 	list := d.List()
-	for _, info := range list {
-		fmt.Printf("%v\n", info.Name)
+	for _, file := range list {
+		fmt.Printf("%-4d %-18v %v\n", file.Size, "\""+file.Name+"\"", file.Type)
 	}
+	fmt.Printf("%-4d BLOCKS FREE\n", info.Free)
 }

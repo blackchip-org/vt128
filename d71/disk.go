@@ -202,7 +202,12 @@ func (d Disk) Info() DiskInfo {
 	di.DoubleSided = e.Read() == 0x80
 	// Front side counts in BAM
 	for track := 1; track < Flip; track++ {
-		free += e.Read()
+		// Don't count directory sectors
+		if track == DirTrack {
+			e.Read()
+		} else {
+			free += e.Read()
+		}
 		e.Move(3)
 	}
 	di.Name = strings.Trim(e.ReadString(16), "\xa0")
@@ -214,7 +219,12 @@ func (d Disk) Info() DiskInfo {
 	// Back side counts in aux area
 	e.Seek(DirTrack, 0, 0xdd)
 	for track := Flip; track <= LastTrack; track++ {
-		free += e.Read()
+		// Don't count back side BAM track
+		if track == BamTrack {
+			e.Read()
+		} else {
+			free += e.Read()
+		}
 	}
 	di.Free = free
 	return di

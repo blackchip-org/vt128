@@ -180,3 +180,13 @@ func TestBlankDisk(t *testing.T) {
 		t.Errorf("diff report:\n%v", diff)
 	}
 }
+
+func TestBlankFreeSectors(t *testing.T) {
+	d, _ := NewDisk("", "")
+	info := d.Info()
+	expected := 1328
+	actual := info.Free
+	if expected != actual {
+		t.Errorf("expected %v ; actual %v", expected, actual)
+	}
+}

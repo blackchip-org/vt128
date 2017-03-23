@@ -16,6 +16,7 @@ const (
 var (
 	disk     string
 	commands = map[string]func([]string){
+		"bam":    bam,
 		"create": create,
 		"dir":    dir,
 	}
@@ -97,4 +98,27 @@ func dir(args []string) {
 		fmt.Printf("%-4d %-18v %v\n", file.Size, "\""+file.Name+"\"", file.Type)
 	}
 	fmt.Printf("%-4d BLOCKS FREE\n", info.Free)
+}
+
+func bam(args []string) {
+	d, err := d71.Load(disk)
+	if err != nil {
+		w("unable to load disk: %v\n", err)
+	}
+	fmt.Println("            1         2         3         4         5         6         7")
+	fmt.Println("   1234567890123456789012345678901234567890123456789012345678901234567890")
+	for sector := 0; sector < d71.MaxTrackLen; sector++ {
+		fmt.Printf("%2d ", sector)
+		for track := 1; track <= d71.MaxTrack; track++ {
+			sectorN := d71.Geom[track].Sectors
+			if sector >= sectorN {
+				fmt.Print(" ")
+			} else if d.BamRead(track, sector) {
+				fmt.Print(".") // Free Sector
+			} else {
+				fmt.Print("*") // Used Sector
+			}
+		}
+		fmt.Println()
+	}
 }

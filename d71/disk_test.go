@@ -58,7 +58,7 @@ func TestBamPosBack(t *testing.T) {
 func TestBamAlloc(t *testing.T) {
 	d, _ := NewDisk("", "")
 	e := d.Editor()
-	d.bamWrite(1, 1, false)
+	d.BamWrite(1, 1, false)
 	e.Seek(DirTrack, 0, 0x4)
 	expFree := 21 - 1
 	free := e.Read()
@@ -75,8 +75,8 @@ func TestBamAlloc(t *testing.T) {
 func TestBamFree(t *testing.T) {
 	d, _ := NewDisk("", "")
 	e := d.Editor()
-	d.bamWrite(1, 1, false)
-	d.bamWrite(1, 1, true)
+	d.BamWrite(1, 1, false)
+	d.BamWrite(1, 1, true)
 	e.Seek(DirTrack, 0, 0x4)
 	expFree := 21
 	free := e.Read()
@@ -97,8 +97,8 @@ func TestBamDoubleAlloc(t *testing.T) {
 		}
 	}()
 	d, _ := NewDisk("", "")
-	d.bamWrite(1, 1, false)
-	d.bamWrite(1, 1, false)
+	d.BamWrite(1, 1, false)
+	d.BamWrite(1, 1, false)
 }
 
 func TestBamDoubleFree(t *testing.T) {
@@ -108,13 +108,13 @@ func TestBamDoubleFree(t *testing.T) {
 		}
 	}()
 	d, _ := NewDisk("", "")
-	d.bamWrite(1, 1, true)
+	d.BamWrite(1, 1, true)
 }
 
 func TestBamAllocBack(t *testing.T) {
 	d, _ := NewDisk("", "")
 	e := d.Editor()
-	d.bamWrite(Flip, 1, false)
+	d.BamWrite(Flip, 1, false)
 	e.Seek(DirTrack, 0, 0xdd)
 	expFree := 21 - 1
 	free := e.Read()

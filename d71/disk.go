@@ -17,8 +17,8 @@ const (
 	// Flip is the first track found on the flip side of the disk
 	Flip = 36
 
-	// LastTrack is the last track on the back side of the disk
-	LastTrack = 70
+	// MaxTrack is the last track on the back side of the disk
+	MaxTrack = 70
 
 	// DirTrack is where the directory is located
 	DirTrack = 18
@@ -26,6 +26,8 @@ const (
 	// BamTrack is where the extended BAM information is stored on the
 	// back side of the disk
 	BamTrack = 53
+
+	MaxTrackLen = 21
 )
 
 // Track contains a number of sectors and the absolute offset in the disk
@@ -141,7 +143,7 @@ func NewDisk(name string, id string) (Disk, error) {
 
 	// Free sector count of back side
 	e.Seek(18, 0, 0xdd)
-	for i := Flip; i <= LastTrack; i++ {
+	for i := Flip; i <= MaxTrack; i++ {
 		if i != BamTrack {
 			sectors := Geom[i].Sectors
 			e.Write(sectors) // Sectors available
@@ -152,7 +154,7 @@ func NewDisk(name string, id string) (Disk, error) {
 
 	// BAM, back side
 	e.Seek(53, 0, 0)
-	for i := Flip; i <= LastTrack; i++ {
+	for i := Flip; i <= MaxTrack; i++ {
 		if i != BamTrack {
 			e.Write(0xff)             // Sectors 0 - 7 free
 			e.Write(0xff)             // Sectors 8 - 15 free
@@ -218,7 +220,7 @@ func (d Disk) Info() DiskInfo {
 
 	// Back side counts in aux area
 	e.Seek(DirTrack, 0, 0xdd)
-	for track := Flip; track <= LastTrack; track++ {
+	for track := Flip; track <= MaxTrack; track++ {
 		// Don't count back side BAM track
 		if track == BamTrack {
 			e.Read()
@@ -265,7 +267,7 @@ func bamPos(e *Editor, track int, sector int) (off int, mask int) {
 }
 
 // Returns true of the track/sector is free, false if it is used
-func (d *Disk) bamRead(track int, sector int) bool {
+func (d *Disk) BamRead(track int, sector int) bool {
 	e := d.Editor()
 	off, mask := bamPos(e, track, sector)
 	bmap := e.Move(off).Peek()
@@ -274,9 +276,9 @@ func (d *Disk) bamRead(track int, sector int) bool {
 
 // Updates the BAM entry for a track/sector, set to true for free and
 // false for used
-func (d *Disk) bamWrite(track int, sector int, val bool) {
+func (d *Disk) BamWrite(track int, sector int, val bool) {
 	// Ensure this is a valid alloc or free
-	prev := d.bamRead(track, sector)
+	prev := d.BamRead(track, sector)
 	if prev == val && val {
 		panic(fmt.Sprintf("double free, track %v, sector %v", track, sector))
 	}

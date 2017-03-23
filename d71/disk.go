@@ -103,12 +103,12 @@ func Pos(track int, sector int, offset int) int {
 // A 1571 floppy disk. Use NewDisk for a formatted disk.
 type Disk []byte
 
-func NewDisk(name string, id string) (Disk, error) {
+func NewDisk(name string, id string) Disk {
 	if len(name) > 0xf {
-		return nil, fmt.Errorf("disk name too long")
+		name = name[:0xf]
 	}
 	if len(id) > 2 {
-		return nil, fmt.Errorf("id too long")
+		id = id[:2]
 	}
 
 	d := make(Disk, DiskLen, DiskLen)
@@ -168,7 +168,7 @@ func NewDisk(name string, id string) (Disk, error) {
 	e.Seek(DirTrack, 1, 1)
 	e.Write(0xff)
 
-	return d, nil
+	return d
 }
 
 func (d Disk) Editor() *Editor {

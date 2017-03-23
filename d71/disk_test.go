@@ -8,15 +8,33 @@ import (
 
 func TestNewDisk(t *testing.T) {
 	expected := "MY DISK\xa0"
-	d, _ := NewDisk("MY DISK", "MD")
+	d := NewDisk("MY DISK", "MD")
 	actual := d.Editor().Move(0x16590).ReadString(len(expected))
 	if expected != actual {
 		t.Errorf("expected %v ; actual %v", expected, actual)
 	}
 }
 
+func TestNewDiskLongName(t *testing.T) {
+	d := NewDisk("123456789ABCDEFXX", "AB")
+	expected := "123456789ABCDEF"
+	actual := d.Editor().Move(0x16590).ReadString(len(expected))
+	if expected != actual {
+		t.Errorf("expected %v ; actual %v", expected, actual)
+	}
+}
+
+func TestNewDiskLongID(t *testing.T) {
+	d := NewDisk("MY DISK", "ABCD")
+	expected := "AB"
+	actual := d.Editor().Move(0x165a2).ReadString(len(expected))
+	if expected != actual {
+		t.Errorf("expected %v ; actual %v", expected, actual)
+	}
+}
+
 func TestBamPosFront(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	e := d.Editor()
 	off, mask := bamPos(e, 10, 15)
 
@@ -36,7 +54,7 @@ func TestBamPosFront(t *testing.T) {
 }
 
 func TestBamPosBack(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	e := d.Editor()
 	off, mask := bamPos(e, 46, 18)
 
@@ -56,7 +74,7 @@ func TestBamPosBack(t *testing.T) {
 }
 
 func TestBamAlloc(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	e := d.Editor()
 	d.BamWrite(1, 1, false)
 	e.Seek(DirTrack, 0, 0x4)
@@ -73,7 +91,7 @@ func TestBamAlloc(t *testing.T) {
 }
 
 func TestBamFree(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	e := d.Editor()
 	d.BamWrite(1, 1, false)
 	d.BamWrite(1, 1, true)
@@ -96,7 +114,7 @@ func TestBamDoubleAlloc(t *testing.T) {
 			t.Errorf("expected panic on double alloc")
 		}
 	}()
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	d.BamWrite(1, 1, false)
 	d.BamWrite(1, 1, false)
 }
@@ -107,12 +125,12 @@ func TestBamDoubleFree(t *testing.T) {
 			t.Errorf("expected panic on double free")
 		}
 	}()
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	d.BamWrite(1, 1, true)
 }
 
 func TestBamAllocBack(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	e := d.Editor()
 	d.BamWrite(Flip, 1, false)
 	e.Seek(DirTrack, 0, 0xdd)
@@ -136,8 +154,8 @@ func TestBamAllocBack(t *testing.T) {
 }
 
 func TestBlankDisk(t *testing.T) {
-	expected, _ := NewDisk("BLANK", "")
-	actual, _ := NewDisk("", "")
+	expected := NewDisk("BLANK", "")
+	actual := NewDisk("", "")
 	dump := `
 0000000 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 *
@@ -182,7 +200,7 @@ func TestBlankDisk(t *testing.T) {
 }
 
 func TestBlankFreeSectors(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	info := d.Info()
 	expected := 1328
 	actual := info.Free

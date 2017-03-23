@@ -3,7 +3,7 @@ package d71
 import "testing"
 
 func TestWriteString(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	expected := "XY"
 	d.Editor().WriteString(expected)
 	actual := string(d[0]) + string(d[1])
@@ -13,7 +13,7 @@ func TestWriteString(t *testing.T) {
 }
 
 func TestReadWord(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	d[0] = 0x34
 	d[1] = 0x12
 	expected := 0x1234
@@ -24,7 +24,7 @@ func TestReadWord(t *testing.T) {
 }
 
 func TestWriteWord(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	d.Editor().WriteWord(0x1234)
 	expected := 0x34
 	actual := int(d[0])

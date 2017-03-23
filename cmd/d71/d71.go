@@ -73,11 +73,7 @@ func create(args []string) {
 		os.Exit(1)
 	}
 
-	d, err := d71.NewDisk(name, id)
-	if err != nil {
-		w("unable to create image: %v\n", err)
-		os.Exit(1)
-	}
+	d := d71.NewDisk(name, id)
 	err = d.Save(disk)
 	if err != nil {
 		w("unable to save image: %v\n", err)

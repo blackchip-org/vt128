@@ -7,7 +7,7 @@ import (
 )
 
 func TestDirWalkOneFile(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	dump := `
 00016600  00 ff 82 11 00 46 49 4c  45 20 31 a0 a0 a0 a0 a0  |.....FILE 1.....|
 00016610  a0 a0 a0 a0 a0 00 00 00  00 00 00 00 00 00 01 00  |................|
@@ -34,7 +34,7 @@ func TestDirWalkOneFile(t *testing.T) {
 }
 
 func TestDirWalkTwoFiles(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	dump := `
 00016600  00 ff 82 11 00 46 49 4c  45 20 31 a0 a0 a0 a0 a0  |.....FILE 1.....|
 00016610  a0 a0 a0 a0 a0 00 00 00  00 00 00 00 00 00 01 00  |................|
@@ -65,7 +65,7 @@ func TestDirWalkTwoFiles(t *testing.T) {
 }
 
 func TestDirWalkDelFile(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	dump := `
 00016600  00 ff 82 11 00 46 49 4c  45 20 31 a0 a0 a0 a0 a0  |.....FILE 1.....|
 00016610  a0 a0 a0 a0 a0 00 00 00  00 00 00 00 00 00 01 00  |................|
@@ -98,7 +98,7 @@ func TestDirWalkDelFile(t *testing.T) {
 }
 
 func TestDirWalkTwoSectors(t *testing.T) {
-	d, _ := NewDisk("", "")
+	d := NewDisk("", "")
 	dump := `
 00016600  12 04 82 11 00 46 49 4c  45 20 31 a0 a0 a0 a0 a0  |.....FILE 1.....|
 00016610  a0 a0 a0 a0 a0 00 00 00  00 00 00 00 00 00 01 00  |................|

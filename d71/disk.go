@@ -267,7 +267,7 @@ func bamPos(e *Editor, track int, sector int) (off int, mask int) {
 }
 
 // Returns true of the track/sector is free, false if it is used
-func (d *Disk) BamRead(track int, sector int) bool {
+func (d Disk) BamRead(track int, sector int) bool {
 	e := d.Editor()
 	off, mask := bamPos(e, track, sector)
 	bmap := e.Move(off).Peek()
@@ -276,7 +276,7 @@ func (d *Disk) BamRead(track int, sector int) bool {
 
 // Updates the BAM entry for a track/sector, set to true for free and
 // false for used
-func (d *Disk) BamWrite(track int, sector int, val bool) {
+func (d Disk) BamWrite(track int, sector int, val bool) {
 	// Ensure this is a valid alloc or free
 	prev := d.BamRead(track, sector)
 	if prev == val && val {

@@ -32,11 +32,11 @@ const (
 	MaxTrackLen = 21
 )
 
-// Track contains a number of sectors and the absolute offset in the disk
-// of where the tracks starts
-type Track struct {
-	Sectors int
-	Offset  int
+// TrackInfo contains information about a specific track.
+type TrackInfo struct {
+	Sectors int // Total number of sectors in this track
+	Offset  int // Byte offset from the beginning of the disk
+	Free    int // Number of sectors that are free
 }
 
 type DiskInfo struct {
@@ -51,11 +51,11 @@ type DiskInfo struct {
 // Geom contains an entry for each track describing the number of sectors
 // and absolute offset into the disk. Since there is no track zero, that
 // index does not contain any useful information.
-var Geom []Track
+var Geom []TrackInfo
 
 // Create the geometry table
 func init() {
-	Geom = make([]Track, 71, 71)
+	Geom = make([]TrackInfo, 71, 71)
 
 	offset := 0
 	for i := 1; i <= 70; i++ {
@@ -80,7 +80,7 @@ func init() {
 		default:
 			panic(fmt.Sprintf("invalid track: %v", i))
 		}
-		Geom[i] = Track{Sectors: sectors, Offset: offset}
+		Geom[i] = TrackInfo{Sectors: sectors, Offset: offset}
 		offset += (sectors * SectorLen)
 	}
 }
@@ -225,6 +225,20 @@ func (d Disk) Info() DiskInfo {
 	}
 	di.Free = free
 	return di
+}
+
+func (d Disk) TrackInfo(track int) TrackInfo {
+	ti := Geom[track]
+	e := d.Editor()
+	if track < Flip {
+		e.Seek(DirTrack, 0, 4)
+		e.Move((track - 1) * 4)
+	} else {
+		e.Seek(DirTrack, 0, 0xdd)
+		e.Move((track - 36))
+	}
+	ti.Free = e.Read()
+	return ti
 }
 
 func (d Disk) List() []FileInfo {

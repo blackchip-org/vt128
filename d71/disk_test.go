@@ -187,3 +187,27 @@ func TestBlankFreeSectors(t *testing.T) {
 		t.Errorf("expected %v ; actual %v", expected, actual)
 	}
 }
+
+func TestTrackInfoFront(t *testing.T) {
+	d := NewDisk("", "")
+	d.BamWrite(4, 9, false)
+	d.BamWrite(4, 19, false)
+	ti := d.TrackInfo(4)
+	expected := 21 - 2
+	actual := ti.Free
+	if expected != actual {
+		t.Errorf("expected %v ; actual %v", expected, actual)
+	}
+}
+
+func TestTrackInfoBack(t *testing.T) {
+	d := NewDisk("", "")
+	d.BamWrite(44, 9, false)
+	d.BamWrite(44, 19, false)
+	ti := d.TrackInfo(44)
+	expected := 21 - 2
+	actual := ti.Free
+	if expected != actual {
+		t.Errorf("expected %v ; actual %v", expected, actual)
+	}
+}

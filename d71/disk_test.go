@@ -108,27 +108,6 @@ func TestBamFree(t *testing.T) {
 	}
 }
 
-func TestBamDoubleAlloc(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("expected panic on double alloc")
-		}
-	}()
-	d := NewDisk("", "")
-	d.BamWrite(1, 1, false)
-	d.BamWrite(1, 1, false)
-}
-
-func TestBamDoubleFree(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("expected panic on double free")
-		}
-	}()
-	d := NewDisk("", "")
-	d.BamWrite(1, 1, true)
-}
-
 func TestBamAllocBack(t *testing.T) {
 	d := NewDisk("", "")
 	e := d.Editor()

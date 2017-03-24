@@ -27,6 +27,8 @@ const (
 	// back side of the disk
 	BamTrack = 53
 
+	// MaxTrackLen is the maximum number of sectors that can be found in a
+	// track
 	MaxTrackLen = 21
 )
 
@@ -266,7 +268,8 @@ func bamPos(e *Editor, track int, sector int) (off int, mask int) {
 	return off, mask
 }
 
-// Returns true of the track/sector is free, false if it is used
+// BamRead returns true if the given track and sector is marked as free
+// in the block availability map. Otherwise returns false.
 func (d Disk) BamRead(track int, sector int) bool {
 	e := d.Editor()
 	off, mask := bamPos(e, track, sector)
@@ -274,16 +277,13 @@ func (d Disk) BamRead(track int, sector int) bool {
 	return bmap&mask > 0
 }
 
-// Updates the BAM entry for a track/sector, set to true for free and
-// false for used
+// BamWrite updates the block availability map for the given track and
+// sector. True markes it as free, false as allocated.
 func (d Disk) BamWrite(track int, sector int, val bool) {
-	// Ensure this is a valid alloc or free
+	// Do nothing if the value is the same
 	prev := d.BamRead(track, sector)
-	if prev == val && val {
-		panic(fmt.Sprintf("double free, track %v, sector %v", track, sector))
-	}
-	if prev == val && !val {
-		panic(fmt.Sprintf("double alloc, track %v, sector %v", track, sector))
+	if prev == val {
+		return
 	}
 
 	// Update the available sector count by +1 or -1

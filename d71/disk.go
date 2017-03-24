@@ -35,9 +35,8 @@ const (
 // Track contains a number of sectors and the absolute offset in the disk
 // of where the tracks starts
 type Track struct {
-	Sectors  int
-	Offset   int
-	lastFree int // Bitmap for the final BAM byte when track free
+	Sectors int
+	Offset  int
 }
 
 type DiskInfo struct {
@@ -61,36 +60,27 @@ func init() {
 	offset := 0
 	for i := 1; i <= 70; i++ {
 		sectors := 0
-		lastFree := 0
 		switch {
 		case i >= 1 && i <= 17:
 			sectors = 21
-			lastFree = 1<<5 - 1
 		case i >= 18 && i <= 24:
 			sectors = 19
-			lastFree = 1<<3 - 1
 		case i >= 25 && i <= 30:
 			sectors = 18
-			lastFree = 1<<2 - 1
 		case i >= 31 && i <= 35:
 			sectors = 17
-			lastFree = 1
 		case i >= 36 && i <= 52:
 			sectors = 21
-			lastFree = 1<<5 - 1
 		case i >= 53 && i <= 59:
 			sectors = 19
-			lastFree = 1<<3 - 1
 		case i >= 60 && i <= 65:
 			sectors = 18
-			lastFree = 1<<2 - 1
 		case i >= 66 && i <= 70:
 			sectors = 17
-			lastFree = 1
 		default:
 			panic(fmt.Sprintf("invalid track: %v", i))
 		}
-		Geom[i] = Track{Sectors: sectors, Offset: offset, lastFree: lastFree}
+		Geom[i] = Track{Sectors: sectors, Offset: offset}
 		offset += (sectors * SectorLen)
 	}
 }
@@ -125,6 +115,7 @@ func NewDisk(name string, id string) Disk {
 	// BAM, front Side
 	for i := 1; i < Flip; i++ {
 		sectors := Geom[i].Sectors
+		lastFree := 1<<(byte(sectors-16)) - 1
 		if i != DirTrack {
 			e.Write(sectors) // Sectors available
 			e.Write(0xff)    // Sectors 0 - 7 free
@@ -132,8 +123,8 @@ func NewDisk(name string, id string) Disk {
 			e.Write(sectors - 2) // BAM and first dir sector in use
 			e.Write(0xfc)        // First two sectors in use
 		}
-		e.Write(0xff)             // Sectors 8 - 15 free
-		e.Write(Geom[i].lastFree) // Remaining sectors free
+		e.Write(0xff)     // Sectors 8 - 15 free
+		e.Write(lastFree) // Remaining sectors free
 	}
 
 	e.WriteStringN(name, 0xa0, 0x10) // Disk Name
@@ -158,9 +149,11 @@ func NewDisk(name string, id string) Disk {
 	e.Seek(53, 0, 0)
 	for i := Flip; i <= MaxTrack; i++ {
 		if i != BamTrack {
-			e.Write(0xff)             // Sectors 0 - 7 free
-			e.Write(0xff)             // Sectors 8 - 15 free
-			e.Write(Geom[i].lastFree) // Remaining sectors free
+			sectors := Geom[i].Sectors
+			lastFree := 1<<(byte(sectors-16)) - 1
+			e.Write(0xff)     // Sectors 0 - 7 free
+			e.Write(0xff)     // Sectors 8 - 15 free
+			e.Write(lastFree) // Remaining sectors free
 		} else {
 			e.Fill(0, 3) // All sectors marked as used
 		}

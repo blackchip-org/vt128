@@ -85,11 +85,49 @@ func init() {
 	}
 }
 
-// Pos computes the disk byte offset based on a track, sector,
+// Offset computes the absolute disk byte offset based on a track, sector,
 // and sector offset
-func Pos(track int, sector int, offset int) int {
+func Offset(track int, sector int, at int) int {
 	toff := Geom[track].Offset
-	return toff + (sector * SectorLen) + offset
+	return toff + (sector * SectorLen) + at
+}
+
+type Pos struct {
+	Track  int
+	Sector int
+	At     int
+}
+
+func (p *Pos) Offset() int {
+	return Offset(p.Track, p.Sector, p.At)
+}
+
+func (p *Pos) Move(val int) {
+	p.At += val
+	for p.At < 0 || p.At >= SectorLen {
+		if p.At < 0 {
+			p.At = p.At + SectorLen
+			p.Sector--
+			if p.Sector < 0 {
+				p.Track--
+				p.Sector = Geom[p.Track].Sectors - 1
+			}
+		}
+		if p.At >= SectorLen {
+			p.At = p.At - SectorLen
+			p.Sector++
+			if p.Sector >= Geom[p.Track].Sectors {
+				p.Track++
+				p.Sector = 0
+			}
+		}
+	}
+}
+
+func (p *Pos) Seek(track int, sector int, at int) {
+	p.Track = track
+	p.Sector = sector
+	p.At = at
 }
 
 // A 1571 floppy disk. Use NewDisk for a formatted disk.
@@ -167,7 +205,9 @@ func NewDisk(name string, id string) Disk {
 }
 
 func (d Disk) Editor() *Editor {
-	return &Editor{disk: d}
+	e := &Editor{disk: d}
+	e.Pos.Track = 1
+	return e
 }
 
 func (d Disk) Save(filename string) error {

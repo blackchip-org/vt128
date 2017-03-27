@@ -36,17 +36,17 @@ func TestNewDiskLongID(t *testing.T) {
 func TestBamPosFront(t *testing.T) {
 	d := NewDisk("", "")
 	e := d.Editor()
-	off, mask := bamPos(e, 10, 15)
+	at, mask := bamPos(e, 10, 15)
 
-	expPos := Pos(DirTrack, 0, 0x04+(10-1)*4)
-	expOff := 2
+	expOffset := Offset(DirTrack, 0, 0x04+(10-1)*4)
+	expAt := 2
 	expMask := 1 << 7
 
-	if e.Pos != expPos {
-		t.Errorf("expected pos $%x ; actual $%x", expPos, e.Pos)
+	if e.Pos.Offset() != expOffset {
+		t.Errorf("expected offset $%x ; actual $%x", e.Pos.Offset(), expOffset)
 	}
-	if off != expOff {
-		t.Errorf("expected off %v ; actual %v", expOff, off)
+	if expAt != at {
+		t.Errorf("expected at %v ; actual %v", expAt, at)
 	}
 	if mask != expMask {
 		t.Errorf("expected mask %b ; actual %b", expMask, mask)
@@ -56,17 +56,17 @@ func TestBamPosFront(t *testing.T) {
 func TestBamPosBack(t *testing.T) {
 	d := NewDisk("", "")
 	e := d.Editor()
-	off, mask := bamPos(e, 46, 18)
+	at, mask := bamPos(e, 46, 18)
 
-	expPos := Pos(BamTrack, 0, (46-Flip)*3)
-	expOff := 2
+	expOffset := Offset(BamTrack, 0, (46-Flip)*3)
+	expAt := 2
 	expMask := 1 << 2
 
-	if e.Pos != expPos {
-		t.Errorf("expected pos $%x ; actual $%x", expPos, e.Pos)
+	if e.Pos.Offset() != expOffset {
+		t.Errorf("expected offset $%x ; actual $%x", e.Pos.Offset(), expOffset)
 	}
-	if off != expOff {
-		t.Errorf("expected off %v ; actual %v", expOff, off)
+	if expAt != at {
+		t.Errorf("expected at %v ; actual %v", expAt, at)
 	}
 	if mask != expMask {
 		t.Errorf("expected mask %b ; actual %b", expMask, mask)

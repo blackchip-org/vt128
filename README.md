@@ -16,5 +16,6 @@ goal for now and subject to change.
 First order of business is a disk reader and writer. Yes, tools already 
 exist for that but why not have some fun. 
 
-https://godoc.org/github.com/blackchip-org/vt128
+https://godoc.org/github.com/blackchip-org/vt128/d71 
+
 

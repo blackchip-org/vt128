@@ -85,3 +85,15 @@ func (e *Editor) WriteStringN(val string, pad int, length int) {
 		e.Write(pad)
 	}
 }
+
+func (e *Editor) Track() int {
+	return e.Pos.Track
+}
+
+func (e *Editor) Sector() int {
+	return e.Pos.Sector
+}
+
+func (e *Editor) At() int {
+	return e.Pos.At
+}

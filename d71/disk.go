@@ -294,6 +294,20 @@ func (d Disk) List() []FileInfo {
 	return list
 }
 
+func (d Disk) Find(name string) (FileInfo, bool) {
+	w := newDirWalker(d)
+	for {
+		fi, more := w.next()
+		if !more {
+			break
+		}
+		if fi.Name == name {
+			return fi, true
+		}
+	}
+	return FileInfo{}, false
+}
+
 // For a given track and sector, compute the location of the BAM entry.
 // This function will move the editor position to the start of the BAM
 // record. It returns the offset from that position to the byte that

@@ -1,10 +1,8 @@
 package d71
 
 import (
-	"fmt"
+	"io"
 	"testing"
-
-	"github.com/blackchip-org/vt128/binary"
 )
 
 func TestWriter(t *testing.T) {
@@ -23,16 +21,73 @@ func TestWriterNextBlock(t *testing.T) {
 	w := newWriter(d, 17, 0)
 	block := make([]byte, 254) /// Minus 2 for block link
 	w.Write(block)
-	fmt.Printf("END OF ZERO BLOCK\n")
 	w.Write([]byte{0xab})
-
-	d2 := NewDisk("", "")
-	report, _ := binary.Compare(d, d2)
-	fmt.Printf("REPORT:\n%v", report)
 
 	want := 0xab
 	got := int(d[Offset(17, 6, 2)]) // Plus 2 for block link, interleave +6
 	if want != got {
 		t.Fatalf("wanted %v ; got %v", want, got)
+	}
+}
+
+func TestReader(t *testing.T) {
+	d := NewDisk("", "")
+	e := d.Editor()
+	e.Seek(17, 0, 0)
+	e.Write(0)
+	e.Write(4)
+	e.Write(0xab)
+	e.Write(0xcd)
+
+	r := newReader(d, 17, 0)
+	buf := make([]byte, 254, 254)
+	n, err := r.Read(buf)
+	if err != io.EOF {
+		t.Fatalf("wanted eof error ; got %v", err)
+	}
+	if n != 2 {
+		t.Fatalf("wanted n 2 ; got %v", n)
+	}
+	if buf[0] != 0xab {
+		t.Fatalf("wanted 0xab ; got %x", buf[0])
+	}
+	if buf[1] != 0xcd {
+		t.Fatalf("wanted 0xcd ; got %x", buf[1])
+	}
+}
+
+func TestReaderNextBlock(t *testing.T) {
+	d := NewDisk("", "")
+	e := d.Editor()
+	e.Seek(17, 0, 0)
+	e.Write(17)
+	e.Write(8)
+	e.Seek(17, 8, 0)
+	e.Write(0)
+	e.Write(4)
+	e.Write(0xab)
+	e.Write(0xcd)
+
+	r := newReader(d, 17, 0)
+	buf := make([]byte, 254, 254)
+	n, err := r.Read(buf)
+	if err != nil {
+		t.Fatalf("wanted no error ; got %v", err)
+	}
+	if n != 254 {
+		t.Fatalf("wanted n 254 ; got %v", n)
+	}
+	n, err = r.Read(buf)
+	if err != io.EOF {
+		t.Fatalf("wanted eof error ; got %v", err)
+	}
+	if n != 2 {
+		t.Fatalf("wanted n 2 ; got %v", n)
+	}
+	if buf[0] != 0xab {
+		t.Fatalf("wanted 0xab ; got %x", buf[0])
+	}
+	if buf[1] != 0xcd {
+		t.Fatalf("wanted 0xcd ; got %x", buf[1])
 	}
 }

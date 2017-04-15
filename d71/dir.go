@@ -1,6 +1,7 @@
 package d71
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -12,6 +13,12 @@ const (
 	Prg                 // Program
 	Usr                 // User
 	Rel                 // Relative
+)
+
+const (
+	bitSaveAt = (1 << 5)
+	bitLocked = (1 << 6)
+	bitSplat  = (1 << 7)
 )
 
 var fileTypeStr = map[FileType]string{
@@ -43,9 +50,10 @@ type FileInfo struct {
 type dirWalker struct {
 	skipDeleted bool // If false, returns deleted entries
 	e           *Editor
-	nextTrack   int // Track of the next directory block or $00
-	nextSector  int // Sector of the next directory block
-	entry       int // Entry (0-7) in this sector that the walker is at
+	nextTrack   int  // Track of the next directory block or $00
+	nextSector  int  // Sector of the next directory block
+	entry       int  // Entry (0-7) in this sector that the walker is at
+	eof         bool //
 }
 
 func newDirWalker(d Disk) *dirWalker {
@@ -73,6 +81,7 @@ func (w *dirWalker) readLink() {
 // the end of the listing.
 func (w *dirWalker) advance() bool {
 	w.entry++
+	fmt.Printf("ENTRY: %v\n", w.entry)
 	if w.entry == 8 {
 		if w.nextTrack == 0 {
 			return false
@@ -86,7 +95,10 @@ func (w *dirWalker) advance() bool {
 	return true
 }
 
-func (w *dirWalker) next() (FileInfo, bool) {
+func (w *dirWalker) next() (*FileInfo, bool) {
+	if w.eof {
+		return nil, false
+	}
 	for {
 		e := w.e.Mark().Move(2)
 		ftype := e.Read()
@@ -95,7 +107,8 @@ func (w *dirWalker) next() (FileInfo, bool) {
 			ok := w.advance()
 			if !ok {
 				// Reached the end, no more entries
-				return FileInfo{}, false
+				w.eof = true
+				return nil, false
 			}
 		} else {
 			// If not deleted, this is a valid entry.
@@ -103,20 +116,67 @@ func (w *dirWalker) next() (FileInfo, bool) {
 		}
 	}
 
-	fi := FileInfo{}
+	fi := &FileInfo{}
 	fi.pos = w.e.Pos
 
-	w.e.Move(2)
-	ftype := w.e.Read()
+	e := w.e.Mark().Move(2)
+	ftype := e.Read()
 	fi.Type = FileType(ftype & 0x7)
 	fi.SaveAt = ftype&(1<<5) > 0
 	fi.Locked = ftype&(1<<6) > 0
 	fi.Splat = ftype&(1<<7) == 0
-	fi.First.Track = w.e.Read()
-	fi.First.Sector = w.e.Read()
-	fi.Name = strings.Trim(w.e.ReadString(16), "\xa0")
-	w.e.Move(0x1e - 0x15)
-	fi.Size = w.e.ReadWord()
+	fi.First.Track = e.Read()
+	fi.First.Sector = e.Read()
+	fi.Name = strings.Trim(e.ReadString(16), "\xa0")
+	e.Move(0x1e - 0x15)
+	fi.Size = e.ReadWord()
 
+	ok := w.advance()
+	if !ok {
+		w.eof = true
+	}
 	return fi, true
+}
+
+/*
+func writeFileInfo(d Disk, fi *FileInfo) error {
+	e := d.Editor()
+	e.Pos = fi.pos
+	e.Move(2)
+
+	ftype := int(fi.Type)
+	if fi.SaveAt {
+		ftype := ftype | (1 << 5)
+	}
+}
+*/
+
+func createDirEntry(d Disk) (*FileInfo, error) {
+	w := newDirWalker(d)
+
+	// See if we can reuse a delete entry. Also unused entries on a
+	// directory sector appear as deleted since the file type is zero.
+	w.skipDeleted = false
+	for {
+		fi, ok := w.next()
+		if !ok {
+			break
+		}
+		if fi.Type == Del {
+			return fi, nil
+		}
+	}
+	// In this case, the last directory sector was full. Create a new
+	// one.
+	dirSector, ok := freeDirSector(d)
+	if !ok {
+		return nil, ErrDirFull
+	}
+	fi := &FileInfo{
+		pos: Pos{
+			Track:  DirTrack,
+			Sector: dirSector,
+		},
+	}
+	return fi, nil
 }

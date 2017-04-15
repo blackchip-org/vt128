@@ -1,7 +1,6 @@
 package d71
 
 import (
-	"fmt"
 	"io"
 )
 
@@ -47,7 +46,7 @@ func (w *Writer) write(b byte) error {
 		// Find a free block
 		newT, newS, ok := freeBlockNext(w.d, w.e.Track(), w.e.Sector())
 		if !ok {
-			return fmt.Errorf("Disk full")
+			return ErrDiskFull
 		}
 		// Add link to next block
 		w.e.Seek(w.e.Track(), w.e.Sector(), 0)

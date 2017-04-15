@@ -281,9 +281,9 @@ func (d Disk) TrackInfo(track int) TrackInfo {
 	return ti
 }
 
-func (d Disk) List() []FileInfo {
+func (d Disk) List() []*FileInfo {
 	w := newDirWalker(d)
-	list := make([]FileInfo, 0, 0)
+	list := make([]*FileInfo, 0, 0)
 	for {
 		fi, more := w.next()
 		if !more {
@@ -294,7 +294,7 @@ func (d Disk) List() []FileInfo {
 	return list
 }
 
-func (d Disk) Find(name string) (FileInfo, bool) {
+func (d Disk) Find(name string) (*FileInfo, bool) {
 	w := newDirWalker(d)
 	for {
 		fi, more := w.next()
@@ -305,7 +305,11 @@ func (d Disk) Find(name string) (FileInfo, bool) {
 			return fi, true
 		}
 	}
-	return FileInfo{}, false
+	return nil, false
+}
+
+func Create(filename string) *Writer {
+	return nil
 }
 
 // For a given track and sector, compute the location of the BAM entry.

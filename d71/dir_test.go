@@ -97,6 +97,31 @@ func TestDirWalkDelFile(t *testing.T) {
 	}
 }
 
+func TestDirWalkFindDelFile(t *testing.T) {
+	d := NewDisk("", "")
+	dump := `
+00016600  00 ff 82 11 00 46 49 4c  45 20 31 a0 a0 a0 a0 a0  |.....FILE 1.....|
+00016610  a0 a0 a0 a0 a0 00 00 00  00 00 00 00 00 00 01 00  |................|
+00016620  00 00 00 11 01 46 49 4c  45 20 32 a0 a0 a0 a0 a0  |.....FILE 2.....|
+00016630  a0 a0 a0 a0 a0 00 00 00  00 00 00 00 00 00 01 00  |................|
+00016640  00 00 82 11 02 46 49 4c  45 20 33 a0 a0 a0 a0 a0  |.....FILE 3.....|
+00016650  a0 a0 a0 a0 a0 00 00 00  00 00 00 00 00 00 01 00  |................|
+00016660  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+`
+	if err := binary.LoadStringDumpInto(dump, d); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	w := newDirWalker(d)
+	w.skipDeleted = false
+	w.next()
+	fi, _ := w.next()
+	expected := "FILE 2"
+	actual := fi.Name
+	if expected != actual {
+		t.Errorf("expected [%v] ; actual [%v]", expected, actual)
+	}
+}
+
 func TestDirWalkTwoSectors(t *testing.T) {
 	d := NewDisk("", "")
 	dump := `

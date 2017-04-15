@@ -80,9 +80,7 @@ func newReader(d Disk, track int, sector int) *Reader {
 
 func (r *Reader) Read(p []byte) (n int, err error) {
 	for ; n < len(p); n++ {
-		fmt.Printf("at %v\n", r.e.Pos)
 		val, err := r.read()
-		fmt.Printf("read %v ; %v\n", val, err)
 		if err != nil {
 			return n, err
 		}
@@ -106,7 +104,6 @@ func (r *Reader) read() (byte, error) {
 		return 0, io.EOF
 	}
 	if r.e.At() == SectorLen {
-		fmt.Printf("seeking\n")
 		r.seek(r.nextTrack, r.nextSector)
 	}
 	val := byte(r.e.Read())

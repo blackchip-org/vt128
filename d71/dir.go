@@ -36,19 +36,21 @@ type FileInfo struct {
 	Splat  bool     // True if the file wasn't properly closed
 	Name   string   //
 	Size   int      // Number of sectors
-	Track  int      // Location of first
-	Sector int      // Location of first
+	First  Pos      // Location of first block
+	pos    Pos      // Position of this file entry in the directoyr
 }
 
 type dirWalker struct {
-	e          *Editor
-	nextTrack  int // Track of the next directory block or $00
-	nextSector int // Sector of the next directory block
-	entry      int // Entry (0-7) in this sector that the walker is at
+	skipDeleted bool // If false, returns deleted entries
+	e           *Editor
+	nextTrack   int // Track of the next directory block or $00
+	nextSector  int // Sector of the next directory block
+	entry       int // Entry (0-7) in this sector that the walker is at
 }
 
 func newDirWalker(d Disk) *dirWalker {
 	w := &dirWalker{e: d.Editor()}
+	w.skipDeleted = true
 	w.e.Seek(DirTrack, 0, 0)
 
 	// BAM sector contains the location of the first directory block
@@ -89,7 +91,7 @@ func (w *dirWalker) next() (FileInfo, bool) {
 		e := w.e.Mark().Move(2)
 		ftype := e.Read()
 		// Skip over this entry if it has been deleted
-		if ftype == 0 {
+		if w.skipDeleted && ftype == 0 {
 			ok := w.advance()
 			if !ok {
 				// Reached the end, no more entries
@@ -102,6 +104,7 @@ func (w *dirWalker) next() (FileInfo, bool) {
 	}
 
 	fi := FileInfo{}
+	fi.pos = w.e.Pos
 
 	w.e.Move(2)
 	ftype := w.e.Read()
@@ -109,8 +112,8 @@ func (w *dirWalker) next() (FileInfo, bool) {
 	fi.SaveAt = ftype&(1<<5) > 0
 	fi.Locked = ftype&(1<<6) > 0
 	fi.Splat = ftype&(1<<7) == 0
-	fi.Track = w.e.Read()
-	fi.Sector = w.e.Read()
+	fi.First.Track = w.e.Read()
+	fi.First.Sector = w.e.Read()
 	fi.Name = strings.Trim(w.e.ReadString(16), "\xa0")
 	w.e.Move(0x1e - 0x15)
 	fi.Size = w.e.ReadWord()

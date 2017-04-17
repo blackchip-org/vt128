@@ -122,9 +122,9 @@ func (w *dirWalker) next() (*FileInfo, bool) {
 	e := w.e.Mark().Move(2)
 	ftype := e.Read()
 	fi.Type = FileType(ftype & 0x7)
-	fi.SaveAt = ftype&(1<<5) > 0
-	fi.Locked = ftype&(1<<6) > 0
-	fi.Splat = ftype&(1<<7) == 0
+	fi.SaveAt = ftype&bitSaveAt > 0
+	fi.Locked = ftype&bitLocked > 0
+	fi.Splat = ftype&bitSplat == 0
 	fi.First.Track = e.Read()
 	fi.First.Sector = e.Read()
 	fi.Name = strings.Trim(e.ReadString(16), "\xa0")
@@ -138,7 +138,6 @@ func (w *dirWalker) next() (*FileInfo, bool) {
 	return fi, true
 }
 
-/*
 func writeFileInfo(d Disk, fi *FileInfo) error {
 	e := d.Editor()
 	e.Pos = fi.pos
@@ -149,7 +148,6 @@ func writeFileInfo(d Disk, fi *FileInfo) error {
 		ftype := ftype | (1 << 5)
 	}
 }
-*/
 
 func createDirEntry(d Disk) (*FileInfo, error) {
 	w := newDirWalker(d)

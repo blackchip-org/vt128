@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/blackchip-org/vt128/ansi"
 	"github.com/blackchip-org/vt128/d71"
@@ -13,12 +14,17 @@ const (
 	prog = "d71"
 )
 
+type commandInfo struct {
+	run  func([]string)
+	help string
+}
+
 var (
 	disk     string
-	commands = map[string]func([]string){
-		"bam":    bam,
-		"create": create,
-		"dir":    dir,
+	commands = map[string]commandInfo{
+		"bam":    commandInfo{run: bam, help: "print block availability map"},
+		"create": commandInfo{run: create, help: "create a formatted disk"},
+		"dir":    commandInfo{run: dir, help: "list directory"},
 	}
 )
 
@@ -26,32 +32,40 @@ func init() {
 	flag.StringVar(&disk, "d", "disk.d71", "disk image to use")
 }
 
-func w(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, args...)
-}
-
 func usage() {
-	w("\nusage: %v [options] command <args...>\n", prog)
+	fmt.Fprintf(os.Stderr, "usage: %v [options] command <args...>\n", prog)
+	fmt.Fprintf(os.Stderr, "\noptions:\n")
+	flag.PrintDefaults()
+
+	fmt.Fprintf(os.Stderr, "\ncommands:\n")
+	names := make([]string, 0, len(commands))
+	for name := range commands {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		fmt.Fprintf(os.Stderr, "  %-10s  %v\n", name, commands[name].help)
+	}
 }
 
 func main() {
 	flag.Usage = usage
 	flag.Parse()
 	if flag.NArg() == 0 {
-		w("no command provided\n")
+		fmt.Fprintf(os.Stderr, "%v: error: no command provided\n\n", prog)
 		usage()
 		os.Exit(1)
 	}
 	cmdName := flag.Arg(0)
 	args := flag.Args()[1:]
 
-	cmd, ok := commands[cmdName]
+	cmdInfo, ok := commands[cmdName]
 	if !ok {
-		w("no such command: %v\n", cmdName)
+		fmt.Fprintf(os.Stderr, "%v: error: no such command: %v\n", prog, cmdName)
 		usage()
 		os.Exit(1)
 	}
-	cmd(args)
+	cmdInfo.run(args)
 }
 
 func create(args []string) {
@@ -69,14 +83,14 @@ func create(args []string) {
 
 	_, err := os.Stat(disk)
 	if err == nil && !force {
-		w("disk file already exists: %v\n", disk)
+		fmt.Fprintf(os.Stderr, "%v: disk file already exists: %v\n", prog, disk)
 		os.Exit(1)
 	}
 
 	d := d71.NewDisk(name, id)
 	err = d.Export(disk)
 	if err != nil {
-		w("unable to save image: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%v: unable to save image: %v\n", prog, err)
 		os.Exit(1)
 	}
 }
@@ -84,7 +98,7 @@ func create(args []string) {
 func dir(args []string) {
 	d, err := d71.Import(disk)
 	if err != nil {
-		w("unable to load disk: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%v: unable to load disk: %v\n", prog, err)
 	}
 	info := d.Info()
 	fmt.Printf("0 %v\"%-16v\" %2v %2v%v\n", ansi.Reverse, info.Name, info.ID,
@@ -99,7 +113,8 @@ func dir(args []string) {
 func bam(args []string) {
 	d, err := d71.Import(disk)
 	if err != nil {
-		w("unable to load disk: %v\n", err)
+		fmt.Fprintf(os.Stderr, "unable to load disk: %v\n", err)
+		os.Exit(1)
 	}
 	fmt.Println("            1         2         3         4         5         6         7")
 	fmt.Println("   1234567890123456789012345678901234567890123456789012345678901234567890")

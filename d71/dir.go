@@ -1,9 +1,6 @@
 package d71
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
 type FileType int
 
@@ -13,6 +10,8 @@ const (
 	Prg                 // Program
 	Usr                 // User
 	Rel                 // Relative
+
+	MaxFilenameLen = 16
 )
 
 const (
@@ -44,7 +43,7 @@ type FileInfo struct {
 	Name   string   //
 	Size   int      // Number of sectors
 	First  Pos      // Location of first block
-	pos    Pos      // Position of this file entry in the directoyr
+	pos    Pos      // Position of this file entry in the directory
 }
 
 type dirWalker struct {
@@ -81,7 +80,6 @@ func (w *dirWalker) readLink() {
 // the end of the listing.
 func (w *dirWalker) advance() bool {
 	w.entry++
-	fmt.Printf("ENTRY: %v\n", w.entry)
 	if w.entry == 8 {
 		if w.nextTrack == 0 {
 			return false
@@ -138,15 +136,29 @@ func (w *dirWalker) next() (*FileInfo, bool) {
 	return fi, true
 }
 
-func writeFileInfo(d Disk, fi *FileInfo) error {
+func writeFileInfo(d Disk, fi *FileInfo) {
 	e := d.Editor()
 	e.Pos = fi.pos
 	e.Move(2)
 
 	ftype := int(fi.Type)
 	if fi.SaveAt {
-		ftype := ftype | (1 << 5)
+		ftype = ftype | bitSaveAt
 	}
+	if fi.Locked {
+		ftype = ftype | bitLocked
+	}
+	if fi.Splat {
+		ftype = ftype | bitSplat
+	}
+	e.Write(ftype)
+	e.Write(fi.First.Track)
+	e.Write(fi.First.Sector)
+	e.WriteStringN(fi.Name, 0xa0, MaxFilenameLen)
+	e.Move(2) // Track/Sector location of first side-sector block (REL file only)
+	e.Move(1) // REL file record length (REL file only, max. value 254)
+	e.Move(6) // $18-$1D: Unused (except with GEOS disks)
+	e.Write(fi.Size)
 }
 
 func createDirEntry(d Disk) (*FileInfo, error) {

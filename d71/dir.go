@@ -10,7 +10,9 @@ const (
 	Prg                 // Program
 	Usr                 // User
 	Rel                 // Relative
+)
 
+const (
 	MaxFilenameLen = 16
 )
 

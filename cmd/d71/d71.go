@@ -74,7 +74,7 @@ func create(args []string) {
 	}
 
 	d := d71.NewDisk(name, id)
-	err = d.Save(disk)
+	err = d.Export(disk)
 	if err != nil {
 		w("unable to save image: %v\n", err)
 		os.Exit(1)
@@ -82,7 +82,7 @@ func create(args []string) {
 }
 
 func dir(args []string) {
-	d, err := d71.Load(disk)
+	d, err := d71.Import(disk)
 	if err != nil {
 		w("unable to load disk: %v\n", err)
 	}
@@ -97,7 +97,7 @@ func dir(args []string) {
 }
 
 func bam(args []string) {
-	d, err := d71.Load(disk)
+	d, err := d71.Import(disk)
 	if err != nil {
 		w("unable to load disk: %v\n", err)
 	}

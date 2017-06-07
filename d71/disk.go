@@ -210,12 +210,12 @@ func (d Disk) Editor() *Editor {
 	return e
 }
 
-func (d Disk) Save(filename string) error {
+func (d Disk) Export(filename string) error {
 	err := ioutil.WriteFile(filename, d, 0644)
 	return err
 }
 
-func Load(filename string) (Disk, error) {
+func Import(filename string) (Disk, error) {
 	fi, err := os.Stat(filename)
 	if err != nil {
 		return nil, err

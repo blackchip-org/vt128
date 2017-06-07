@@ -3,6 +3,7 @@ package d71
 import "fmt"
 
 var (
-	ErrDiskFull = fmt.Errorf("disk full")
-	ErrDirFull  = fmt.Errorf("directory full")
+	ErrDiskFull   = fmt.Errorf("disk full")
+	ErrDirFull    = fmt.Errorf("directory full")
+	ErrFileExists = fmt.Errorf("file exists")
 )
